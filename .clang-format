@@ -1,0 +1,16 @@
+BreakBeforeBraces: Attach
+IndentWidth: 4
+SortIncludes: Never
+AlignConsecutiveAssignments: AcrossEmptyLinesAndComments
+AlignConsecutiveDeclarations: AcrossEmptyLinesAndComments
+AlignConsecutiveMacros: AcrossEmptyLinesAndComments
+AlignEscapedNewlines: DontAlign
+AlignOperands: DontAlign
+ColumnLimit: 0
+
+IndentCaseLabels: true
+
+BreakBeforeBraces: Custom
+BraceWrapping:
+  IndentBraces: false
+  AfterCaseLabel: false
