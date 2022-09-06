@@ -6,7 +6,11 @@ bool Parser::consume(const char *str) {
 
     string tmp = str;
 
+    if (tmp == token->str && TK_EOF == token->kind)
+        return true;
+
     if (tmp == token->str) {
+
         token++;
         return true;
     }
@@ -56,7 +60,37 @@ vector<Node *> Parser::program(vector<Node *> nodes) {
 }
 
 Node *Parser::func(void) {
-    return expr();
+    Node *node;
+    if (consume("fn")) {
+        string function_name;
+        string function_type;
+
+        function_name = token->str;
+        token++;
+        expect("(");
+        expect(")");
+        expect(":");
+        function_type = token->str;
+        token++;
+        cout << function_name << ":" << function_type << endl;
+        block();
+    }
+    return node;
+}
+
+Node *Parser::block(void) {
+    Node *node;
+
+    expect("{");
+
+    while (1) {
+        if (consume("}"))
+            return node;
+        node = new Node{ND_BLOCK, node, expr()};
+    }
+
+    expect("}");
+    return node;
 }
 
 Node *Parser::expr(void) {

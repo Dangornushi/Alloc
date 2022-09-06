@@ -27,6 +27,7 @@ typedef enum {
     TK_OP,
     TK_LET,
     TK_RETURN,
+    TK_FN,
     TK_NEWLINE,
     TK_EQ,
     TK_VARIABLE,
@@ -46,7 +47,9 @@ typedef enum {
     ND_MUL,
     ND_DIV,
     ND_LET,
+    ND_FN,
     ND_RETURN,
+    ND_BLOCK,
     ND_VARIABLE,
     ND_EXPR,
 } NodeKind;
@@ -70,20 +73,21 @@ class Tokenizer {
 };
 
 class Parser {
-    bool isNumber(string str);
-    bool expect(const char *str);
-
-  public:
+    bool                    isNumber(string str);
+    bool                    expect(const char *str);
+    vector<Token>::iterator token;
+    vector<Node *>          program(vector<Node *> nodes);
     bool                    consume(const char *str);
     Node                   *let_exper(void);
     Node                   *return_exper(void);
-    vector<Node *>          parse(vector<Token> tokens);
-    vector<Node *>          program(vector<Node *> nodes);
     Node                   *func(void);
+    Node                   *block(void);
     Node                   *expr(void);
     Node                   *addSub(void);
     Node                   *num(void);
-    vector<Token>::iterator token;
+
+  public:
+    vector<Node *> parse(vector<Token> tokens);
 };
 
 typedef enum {

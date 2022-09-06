@@ -33,6 +33,13 @@ vector<Token> Tokenizer::tokenize(string sent) {
                 input++;
                 break;
             case ';':
+            case '(':
+            case ')':
+            case '{':
+            case '}':
+            case ':':
+            case '/':
+            case '*':
             case '+':
             case '-': {
                 string input_string = input.base();
@@ -47,6 +54,7 @@ vector<Token> Tokenizer::tokenize(string sent) {
                     input += 3;
                     continue;
                 }
+
                 if (split_token(input, "<-", 2)) {
                     tokens.push_back(Token{TK_LET, "<-", 2});
                     input += 2;
@@ -56,6 +64,12 @@ vector<Token> Tokenizer::tokenize(string sent) {
                 if (split_token(input, "return", 6)) {
                     tokens.push_back(Token{TK_RETURN, "return", 6});
                     input += 6;
+                    continue;
+                }
+
+                if (split_token(input, "fn", 2)) {
+                    tokens.push_back(Token{TK_FN, "fn", 2});
+                    input += 2;
                     continue;
                 }
 
