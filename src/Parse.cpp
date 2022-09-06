@@ -62,18 +62,15 @@ vector<Node *> Parser::program(vector<Node *> nodes) {
 Node *Parser::func(void) {
     Node *node;
     if (consume("fn")) {
-        string function_name;
         string function_type;
 
-        function_name = token->str;
-        token++;
+        node = num();
         expect("(");
         expect(")");
         expect(":");
         function_type = token->str;
         token++;
-        cout << function_name << ":" << function_type << endl;
-        block();
+        node = new Node{ND_FN, node, block()};
     }
     return node;
 }
@@ -82,6 +79,8 @@ Node *Parser::block(void) {
     Node *node;
 
     expect("{");
+
+    node = expr();
 
     while (1) {
         if (consume("}"))

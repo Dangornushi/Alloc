@@ -99,6 +99,18 @@ string Generator::gen(const Node *node) {
             op_codes.push_back("\tret i32 " + return_value + "\n");
             break;
         }
+        case ND_BLOCK: {
+            gen(node->left);
+            gen(node->right);
+            break;
+        }
+        case ND_FN: {
+            string function_name = node->left->val;
+            op_codes.push_back("define i32 @" + function_name + "() #0 {\nentry:\n");
+            gen(node->right);
+            op_codes.push_back("}");
+            break;
+        }
         default:
             break;
     }
@@ -107,12 +119,10 @@ string Generator::gen(const Node *node) {
 
 vector<string> Generator::codegen(vector<Node *> &nodes) {
     register_number = 0;
-    op_codes.push_back("define i32 @main() #0 {\nentry:\n");
 
     for (Node *node : nodes) {
         gen(node);
     }
 
-    op_codes.push_back("}");
     return op_codes;
 }
