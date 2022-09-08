@@ -62,14 +62,19 @@ vector<Node *> Parser::program(vector<Node *> nodes) {
 Node *Parser::func(void) {
     Node *node;
     if (consume("fn")) {
-        string function_type;
+        string function_type = "void";
 
-        node = num();
-        expect("(");
-        expect(")");
-        expect(":");
-        function_type = token->str;
-        token++;
+        node                 = num();
+
+        if (consume("(")) {
+            expect(")");
+        }
+
+        if (consume(":")) {
+            function_type = token->str;
+            token++;
+        }
+
         node = new Node{ND_FN, node, block()};
     }
     return node;

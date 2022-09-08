@@ -117,6 +117,7 @@ class Generator {
     Register            env_register;
     vector<string>      op_codes;
     string              IR_load(string load_register, string loaded_register, string type_1, string type_2, string size);
+    string              IR_calculation(const Node *node, const char calc_op, string &result_register);
 
   public:
     string         gen(const Node *node);
