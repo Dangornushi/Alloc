@@ -10,7 +10,6 @@ bool Parser::consume(const char *str) {
         return true;
 
     if (tmp == token->str) {
-
         token++;
         return true;
     }
@@ -33,13 +32,13 @@ Node *Parser::let_exper(void) {
 
     node = num();
     expect("<-");
-    node = new Node{ND_LET, node, addSub()};
+    node = new Node{ND_LET, node, add_sub()};
     expect(";");
     return node;
 }
 
 Node *Parser::return_exper(void) {
-    Node *node = new Node{ND_RETURN, node, addSub()};
+    Node *node = new Node{ND_RETURN, node, add_sub()};
     expect(";");
     return node;
 }
@@ -53,9 +52,8 @@ vector<Node *> Parser::parse(vector<Token> tokens) {
 
 vector<Node *> Parser::program(vector<Node *> nodes) {
 
-    while (TK_EOF != token->kind) {
+    while (TK_EOF != token->kind)
         nodes.push_back(func());
-    }
     return nodes;
 }
 
@@ -63,14 +61,15 @@ Node *Parser::func(void) {
     Node *node;
     if (consume("fn")) {
         string function_type = "void";
-
         node                 = num();
 
         if (consume("(")) {
+            // argments
             expect(")");
         }
 
         if (consume(":")) {
+            // functions type
             function_type = token->str;
             token++;
         }
@@ -103,26 +102,43 @@ Node *Parser::expr(void) {
         return let_exper();
     } else if (consume("return")) {
         return return_exper();
-    } else {
-        return addSub();
     }
+    return add_sub();
 }
 
-Node *Parser::addSub(void) {
-    Node *node = num();
+Node *Parser::add_sub(void) {
+    Node *node = mul_div();
 
     while (1) {
         if (consume("+")) {
-            node = new Node{ND_ADD, node, addSub()};
+            node = new Node{ND_ADD, node, add_sub()};
         } else if (consume("-"))
-            node = new Node{ND_SUB, node, addSub()};
-        else if (consume("*"))
-            node = new Node{ND_MUL, node, addSub()};
-        else if (consume("/"))
-            node = new Node{ND_DIV, node, addSub()};
+            node = new Node{ND_SUB, node, add_sub()};
         else
             return node;
     }
+}
+
+Node *Parser::mul_div(void) {
+    Node *node = expr_in_brackets();
+
+    while (1) {
+        if (consume("*"))
+            node = new Node{ND_MUL, node, mul_div()};
+        else if (consume("/"))
+            node = new Node{ND_DIV, node, mul_div()};
+        else
+            return node;
+    }
+}
+
+Node *Parser::expr_in_brackets(void) {
+    if (consume("(")) {
+        Node *node = add_sub();
+        expect(")");
+        return node;
+    }
+    return num();
 }
 
 Node *Parser::num(void) {

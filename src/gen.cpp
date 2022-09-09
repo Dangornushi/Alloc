@@ -16,9 +16,7 @@ string Generator::IR_load(string load_register, string loaded_register, string t
     return "\t" + load_register + " = load " + type_1 + ", " + type_2 + " " + loaded_register + ", align " + size + "\n";
 }
 
-string Generator::IR_calculation(const Node *node, const char calc_op, string &result_register) {
-    string op_codes;
-
+void Generator::IR_calculation(const Node *node, vector<string> &op_codes, const char calc_op, string &result_register) {
     // ===--- common ---===
     string l_register = gen(node->left);
     string r_register = gen(node->right);
@@ -45,16 +43,16 @@ string Generator::IR_calculation(const Node *node, const char calc_op, string &r
             break;
     }
 
-    op_codes.append("\n\t; " + calc + "\n");
+    op_codes.push_back("\n\t; " + calc + "\n");
 
     // ===--- common ---===
     if (ir[ir_to_name[l_register]].register_pointer.Type == "i32*") {
         string load_register_1 = generate_regisuter_name();
         string load_register_2 = generate_regisuter_name();
 
-        op_codes.append(IR_load(load_register_1, l_register, type, type + "*", "8"));
+        op_codes.push_back(IR_load(load_register_1, l_register, type, type + "*", "8"));
         type = ir[ir_to_name[l_register]].register_nonpointer_name.Type;
-        op_codes.append(IR_load(load_register_2, load_register_1, type, type + "*", "4"));
+        op_codes.push_back(IR_load(load_register_2, load_register_1, type, type + "*", "4"));
         l_register = load_register_2;
     }
 
@@ -62,10 +60,44 @@ string Generator::IR_calculation(const Node *node, const char calc_op, string &r
     calc_register = generate_regisuter_name();
 
     // ===--- uncommon ---===
-    op_codes.append("\t" + calc_register + " = " + calc + " i32 " + l_register + ", " + r_register + "\n\n");
+    op_codes.push_back("\t" + calc_register + " = " + calc + " i32 " + l_register + ", " + r_register + "\n\n");
     result_register = calc_register;
+}
 
-    return op_codes;
+void Generator::IR_mov(const Node *node, vector<string> &op_codes) {
+    string alloca_p = generate_regisuter_name();
+    string alloca_i = generate_regisuter_name();
+
+    op_codes.push_back("\t; mov\n");
+
+    // ===--- define ---===
+    op_codes.push_back(
+        "\t" + alloca_p + " = alloca i32*, align 8\n" +
+        "\t" + alloca_i + " = alloca i32, align 4\n" +
+        "\tstore i32* " + alloca_i + ", i32** " + alloca_p + ", align 8\n");
+
+    // ===--- mov ---===
+    string variable_name       = node->left->val;
+    string store_register_name = gen(node->right);
+
+    if ("i32" == trance_type(store_register_name)) {
+        op_codes.push_back("\tstore i32 " + store_register_name + ", i32* " + alloca_i + ", align 4\n");
+
+    }
+
+    else if (store_register_name[0] == '%') {
+        string load = generate_regisuter_name();
+        op_codes.push_back(
+            "\t" + load + " = load i32*, i32** " + alloca_p + ", align 8\n" +
+            "\tstore i32 " + store_register_name + ", i32* " + load + ", align 4\n");
+    }
+
+    op_codes.push_back("\n");
+
+    // map ir -> ir_to_name
+    ir.emplace(variable_name, IR{Register{alloca_p, "i32*", "8"}, Register{alloca_i, "i32", "4"}, ""});
+    ir_to_name.emplace(alloca_i, variable_name);
+    ir_to_name.emplace(alloca_p, variable_name);
 }
 
 string Generator::gen(const Node *node) {
@@ -86,54 +118,21 @@ string Generator::gen(const Node *node) {
             result_register   = ir[node->val].register_pointer.Name;
             break;
         }
-        case ND_ADD: {
-            string inData = IR_calculation(node, '+', result_register);
-            op_codes.push_back(inData);
+        case ND_ADD:
+            IR_calculation(node, op_codes, '+', result_register);
             break;
-        }
-        case ND_SUB: {
-            string inData = IR_calculation(node, '-', result_register);
-            op_codes.push_back(inData);
+        case ND_SUB:
+            IR_calculation(node, op_codes, '-', result_register);
             break;
-        }
-        case ND_LET: {
-            string alloca_p = generate_regisuter_name();
-            string alloca_i = generate_regisuter_name();
-
-            op_codes.push_back("\t; mov\n");
-
-            // ===--- define ---===
-            op_codes.push_back(
-                "\t" + alloca_p + " = alloca i32*, align 8\n" +
-                "\t" + alloca_i + " = alloca i32, align 4\n" +
-                "\tstore i32* " + alloca_i + ", i32** " + alloca_p + ", align 8\n");
-
-            string store_register_name = gen(node->right);
-            string variable_name       = node->left->val;
-
-            // ===--- mov ---===
-
-            if ("i32" == trance_type(store_register_name)) {
-                op_codes.push_back("\tstore i32 " + store_register_name + ", i32* " + alloca_i + ", align 4\n");
-
-            }
-
-            else if (store_register_name[0] == '%') {
-                string load = generate_regisuter_name();
-                op_codes.push_back(
-                    "\t" + load + " = load i32*, i32** " + alloca_p + ", align 8\n" +
-                    "\tstore i32 " + store_register_name + ", i32* " + load + ", align 4\n");
-            }
-
-            op_codes.push_back("\n");
-
-            // map ir -> ir_to_name
-            ir.emplace(variable_name, IR{Register{alloca_p, "i32*", "8"}, Register{alloca_i, "i32", "4"}, ""});
-            ir_to_name.emplace(alloca_i, variable_name);
-            ir_to_name.emplace(alloca_p, variable_name);
-
+        case ND_MUL:
+            IR_calculation(node, op_codes, '*', result_register);
             break;
-        }
+        case ND_DIV:
+            IR_calculation(node, op_codes, '/', result_register);
+            break;
+        case ND_LET:
+            IR_mov(node, op_codes);
+            break;
         case ND_RETURN: {
             string return_value = gen(node->right);
             string type         = ir[ir_to_name[return_value]].register_pointer.Type;

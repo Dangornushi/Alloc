@@ -29,6 +29,7 @@ vector<Token> Tokenizer::tokenize(string sent) {
                 tokens.push_back(Token{TK_EOF, "", 0});
                 return tokens;
             case '\n':
+            case '\t':
             case ' ':
                 input++;
                 break;

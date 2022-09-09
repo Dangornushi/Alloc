@@ -83,7 +83,9 @@ class Parser {
     Node                   *func(void);
     Node                   *block(void);
     Node                   *expr(void);
-    Node                   *addSub(void);
+    Node                   *expr_in_brackets(void);
+    Node                   *add_sub(void);
+    Node                   *mul_div(void);
     Node                   *num(void);
 
   public:
@@ -116,8 +118,9 @@ class Generator {
     map<string, string> ir_to_name;
     Register            env_register;
     vector<string>      op_codes;
+    void                IR_mov(const Node *node, vector<string> &op_codes);
     string              IR_load(string load_register, string loaded_register, string type_1, string type_2, string size);
-    string              IR_calculation(const Node *node, const char calc_op, string &result_register);
+    void                IR_calculation(const Node *node, vector<string> &op_codes, const char calc_op, string &result_register);
 
   public:
     string         gen(const Node *node);
