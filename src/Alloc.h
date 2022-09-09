@@ -13,8 +13,10 @@
 #define MAX_READ_SIZE 1024
 
 using std::cerr;
+using std::cin;
 using std::cout;
 using std::endl;
+using std::flush;
 using std::ifstream;
 using std::map;
 using std::ofstream;
