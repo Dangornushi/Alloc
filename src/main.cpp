@@ -1,5 +1,4 @@
 #include "Alloc.h"
-
 string pick_out_extension(char *data) {
     string extension;
 
@@ -24,6 +23,7 @@ vector<string> start(char *data) {
 }
 
 int main(int argc, char **argv) {
+    string   prompt = ">> ";
     ofstream discharge_f;
     FILE    *program_f;
     char    *data;
@@ -35,7 +35,7 @@ int main(int argc, char **argv) {
         while (1) {
             string tmp;
 
-            cout << ">" << flush;
+            cout << prompt << flush;
 
             std::getline(cin, tmp);
 
@@ -46,6 +46,12 @@ int main(int argc, char **argv) {
                 fname = (char *)"runtime-file";
                 break;
             }
+
+            if (input_data.back() == '{')
+                prompt = ".. ";
+
+            if (input_data.back() == '}')
+                prompt = ">> ";
 
             if (input_data == "q") {
                 cout << "exit: 0" << endl;
