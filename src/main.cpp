@@ -28,10 +28,15 @@ int main(int argc, char **argv) {
     FILE    *program_f;
     char    *data;
     char    *fname;
+    Mode     mode;
 
     if (argc == 1) {
+    loop:
         string input_data;
+
+        mode = INTERP;
         data = (char *)malloc(sizeof(char *));
+
         while (1) {
             string tmp;
 
@@ -61,6 +66,7 @@ int main(int argc, char **argv) {
     }
 
     else {
+        mode  = COMPILE;
         fname = argv[1];
         data  = (char *)malloc(sizeof(char *));
         char buf[MAX_READ_SIZE];
@@ -86,9 +92,25 @@ int main(int argc, char **argv) {
     for (auto item : op_codes) {
         discharge_f << item << std::flush;
     }
+
     discharge_f.close();
 
     data = (char *)realloc(NULL, 1);
+
+    if (mode == INTERP || mode == COMMAND) {
+        // run
+        int lli_run_return_code = system("lli runtime-file");
+        int state               = -1;
+
+        if (WIFEXITED(lli_run_return_code))
+            state = WEXITSTATUS(lli_run_return_code);
+
+        cout << "Return code: " << state << endl;
+    }
+    if (mode == INTERP) {
+        // go to interprit compile func
+        goto loop;
+    }
 
     free(data);
 

@@ -25,6 +25,19 @@ using std::to_string;
 using std::vector;
 
 typedef enum {
+    /* ./alloc '$FILE_DATA' */
+    COMMAND,
+
+    /* ./alloc
+     * >> $FILE_DATA
+     */
+    INTERP,
+
+    /* ./alloc $FILE */
+    COMPILE,
+} Mode;
+
+typedef enum {
     TK_NUM,
     TK_OP,
     TK_LET,
