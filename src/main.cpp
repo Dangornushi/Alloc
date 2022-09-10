@@ -65,6 +65,20 @@ int main(int argc, char **argv) {
         }
     }
 
+    else if (!strcmp(argv[1], "-run")) {
+        data                     = (char *)malloc(1);
+        char *flag_pointer_alloc = (char *)realloc(data, strlen(argv[2]));
+        mode                     = COMMAND;
+
+        if (flag_pointer_alloc == NULL) {
+            cout << "executinon Err: Cant allocated mem. (-1)" << endl;
+            exit(-1);
+        }
+
+        strcpy(data, argv[2]);
+        fname = (char *)"runtime-file";
+    }
+
     else {
         mode  = COMPILE;
         fname = argv[1];
