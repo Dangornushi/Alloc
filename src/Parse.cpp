@@ -63,6 +63,28 @@ vector<Node *> Parser::program(vector<Node *> nodes) {
     return nodes;
 }
 
+vector<Register> Parser::arg(void) {
+    Node            *node;
+    vector<Register> argments;
+
+    if (consume(")")) {
+        token--;
+        return argments;
+    }
+
+    while (1) {
+        argments.push_back({(token + 2)->str, token->str});
+        if ((token + 3)->str == ",")
+            token += 4;
+        else if ((token + 3)->str == ")") {
+            token += 3;
+            break;
+        }
+    }
+
+    return argments;
+}
+
 Node *Parser::func(void) {
     Node *node;
     if (consume("fn")) {
@@ -71,6 +93,9 @@ Node *Parser::func(void) {
         token++;
 
         if (consume("(")) {
+            for (auto tmp : arg()) {
+                cout << tmp.Name << ":" << tmp.Type << endl;
+            }
             // argments
             expect(")");
         }

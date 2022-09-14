@@ -33,6 +33,8 @@ vector<Token> Tokenizer::tokenize(string sent) {
             case ' ':
                 input++;
                 break;
+            case '.':
+            case ',':
             case ';':
             case ':':
             case '[':

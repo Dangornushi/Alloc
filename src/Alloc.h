@@ -57,6 +57,12 @@ typedef struct {
     int       len;
 } Token;
 
+typedef struct {
+    string Name;
+    string Type;
+    string Size;
+} Register;
+
 typedef enum {
     ND_NUM,
     ND_ADD,
@@ -99,6 +105,7 @@ class Parser {
     bool                    consume(const char *str);
     Node                   *let_exper(void);
     Node                   *return_exper(void);
+    vector<Register>        arg(void);
     Node                   *func(void);
     Node                   *block(void);
     Node                   *expr(void);
@@ -118,12 +125,6 @@ typedef enum {
     OP_IR_MUL,
     OP_IR_DIV,
 } OP_CODE;
-
-typedef struct {
-    string Name;
-    string Type;
-    string Size;
-} Register;
 
 typedef struct {
     Register register_pointer;

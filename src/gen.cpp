@@ -182,11 +182,6 @@ string Generator::gen(const Node *node) {
         case ND_CALL_FUNCTION: {
             result_register = generate_regisuter_name();
             op_codes.push_back("\t" + result_register + " = call i32 @" + node->val + "()\n");
-            /*
-  %4 = call i32 @fn()
-  %5 = load i32*, i32** %2, align 8
-  store i32 %4, i32* %5, align 4
-             */
             break;
         }
         case ND_RETURN: {
