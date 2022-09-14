@@ -10,7 +10,7 @@ bool  split_token(string::iterator data, const char *word, int index) {
 }
 
 bool isAlphabet(string::iterator input) {
-    return ((input[0] >= 'a' && input[0] <= 'z') || (input[0] >= 'A' && input[0] <= 'Z'));
+    return ((input[0] >= 'a' && input[0] <= 'z') || (input[0] >= 'A' && input[0] <= 'Z') || (input[0] == '_'));
 }
 
 bool Tokenizer::isKeyword(char *input) {
@@ -34,11 +34,13 @@ vector<Token> Tokenizer::tokenize(string sent) {
                 input++;
                 break;
             case ';':
+            case ':':
+            case '[':
+            case ']':
             case '(':
             case ')':
             case '{':
             case '}':
-            case ':':
             case '/':
             case '*':
             case '+':

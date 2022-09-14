@@ -1,5 +1,12 @@
 #include "Alloc.h"
 
+bool isdigit(string s1) {
+    bool f = true;
+    for (auto str : s1)
+        f = isdigit(str);
+    return f;
+}
+
 string Generator::generate_regisuter_name(void) {
     return "%" + to_string(register_number++);
 }
@@ -19,12 +26,43 @@ string Generator::IR_load(string load_register, string loaded_register, string t
 void Generator::IR_calculation(const Node *node, vector<string> &op_codes, const char calc_op, string &result_register) {
     // ===--- common ---===
     string l_register = gen(node->left);
+    string l_type     = node->left->type;
     string r_register = gen(node->right);
+    string r_type     = node->right->type;
     string type       = ir[ir_to_name[l_register]].register_pointer.Type;
 
     // ===--- uncommon ---===
     string calc_register;
     string calc;
+
+    if (isdigit(l_register) && isdigit(r_register)) {
+        int l_num = stoi(l_register);
+        int r_num = stoi(r_register);
+
+        switch (calc_op) {
+            case '+':
+                l_num += r_num;
+                break;
+            case '-':
+                l_num -= r_num;
+                break;
+            case '*':
+                l_num *= r_num;
+                break;
+            case '/':
+                l_num /= r_num;
+                break;
+            default: {
+                cout << "Token error : cant tokenize '" << calc_op << "'" << endl;
+                exit(1);
+                break;
+            }
+        }
+
+        result_register = to_string(l_num);
+
+        return;
+    }
 
     switch (calc_op) {
         case '+':
@@ -39,8 +77,11 @@ void Generator::IR_calculation(const Node *node, vector<string> &op_codes, const
         case '/':
             calc = "sdiv";
             break;
-        default:
+        default: {
+            cout << "Token error : cant tokenize '" << calc_op << "'" << endl;
+            exit(1);
             break;
+        }
     }
 
     op_codes.push_back("\n\t; " + calc + "\n");
@@ -56,12 +97,16 @@ void Generator::IR_calculation(const Node *node, vector<string> &op_codes, const
         l_register = load_register_2;
     }
 
+    // if (l_register)
+
     // ===--- common ---===
     calc_register = generate_regisuter_name();
 
     // ===--- uncommon ---===
     op_codes.push_back("\t" + calc_register + " = " + calc + " i32 " + l_register + ", " + r_register + "\n\n");
-    result_register = calc_register;
+    result_register                                      = calc_register;
+    ir_to_name[result_register]                          = "calculation_tmp_register";
+    ir["calculation_tmp_register"].register_pointer.Type = "i32**";
 }
 
 void Generator::IR_mov(const Node *node, vector<string> &op_codes) {
@@ -77,7 +122,7 @@ void Generator::IR_mov(const Node *node, vector<string> &op_codes) {
         "\tstore i32* " + alloca_i + ", i32** " + alloca_p + ", align 8\n");
 
     // ===--- mov ---===
-    string variable_name       = node->left->val;
+    string variable_name       = node->val;
     string store_register_name = gen(node->right);
 
     if ("i32" == trance_type(store_register_name)) {
@@ -133,14 +178,29 @@ string Generator::gen(const Node *node) {
         case ND_LET:
             IR_mov(node, op_codes);
             break;
+
+        case ND_CALL_FUNCTION: {
+            result_register = generate_regisuter_name();
+            op_codes.push_back("\t" + result_register + " = call i32 @" + node->val + "()\n");
+            /*
+  %4 = call i32 @fn()
+  %5 = load i32*, i32** %2, align 8
+  store i32 %4, i32* %5, align 4
+             */
+            break;
+        }
         case ND_RETURN: {
             string return_value = gen(node->right);
             string type         = ir[ir_to_name[return_value]].register_pointer.Type;
             string load_register_pointer;
             string load_register_non_pointer = generate_regisuter_name();
 
-            op_codes.push_back("\t; return\n");
             if (type == "i32*") {
+                // 戻り値チェック!!!
+                if (type != now_function_type + "*") {
+                    cout << "Generator err: must to same return type as functions type. (-1)" << endl;
+                    exit(1);
+                }
                 // if var
                 load_register_pointer     = load_register_non_pointer;
                 load_register_non_pointer = generate_regisuter_name();
@@ -148,11 +208,11 @@ string Generator::gen(const Node *node) {
                 type         = ir[ir_to_name[return_value]].register_nonpointer_name.Type;
                 return_value = load_register_pointer;
                 op_codes.push_back(IR_load(load_register_non_pointer, return_value, type, type + "*", "4"));
-                op_codes.push_back("\tret i32 " + load_register_non_pointer + "\n");
+                op_codes.push_back("\tret " + now_function_type + " " + load_register_non_pointer + "\n");
                 break;
             }
             // if const Num
-            op_codes.push_back("\tret i32 " + return_value + "\n");
+            op_codes.push_back("\tret " + now_function_type + " " + return_value + "\n");
             break;
         }
         case ND_BLOCK: {
@@ -161,20 +221,35 @@ string Generator::gen(const Node *node) {
             break;
         }
         case ND_FN: {
-            string function_name = node->left->val;
-            op_codes.push_back("define i32 @" + function_name + "() #0 {\nentry:\n");
+            string function_name = node->val;
+            now_function_type    = type_to_i_type[node->type];
+
+            if (function_name == "main" && now_function_type != "i32") {
+                cout << "Generator err: must to be return int by main. (-1)" << endl;
+                exit(1);
+            }
+
+            op_codes.push_back("define " + now_function_type + " @" + function_name + "() #0 {\nentry:\n");
             gen(node->right);
-            op_codes.push_back("}");
+            op_codes.push_back("}\n\n");
+            register_number = 0;
             break;
         }
-        default:
+        default: {
             break;
+        }
     }
     return result_register;
 }
 
 vector<string> Generator::codegen(vector<Node *> &nodes) {
     register_number = 0;
+    type_to_i_type  = {
+         {"int", "i32"},
+         {"long", "i64"},
+         {"void", "void"},
+         {"str", "i8"},
+    };
 
     for (Node *node : nodes) {
         gen(node);

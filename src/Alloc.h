@@ -9,6 +9,8 @@
 #include <cstdio>
 #include <ctype.h>
 #include <fstream>
+#include <algorithm>
+#include <cctype>
 
 #define MAX_READ_SIZE 1024
 
@@ -65,6 +67,7 @@ typedef enum {
     ND_FN,
     ND_RETURN,
     ND_BLOCK,
+    ND_CALL_FUNCTION,
     ND_VARIABLE,
     ND_EXPR,
 } NodeKind;
@@ -76,6 +79,7 @@ struct Node {
     Node    *left;
     Node    *right;
     string   val;
+    string   type;
 };
 
 class Tokenizer {
@@ -101,6 +105,7 @@ class Parser {
     Node                   *expr_in_brackets(void);
     Node                   *add_sub(void);
     Node                   *mul_div(void);
+    Node                   *call_function(void);
     Node                   *num(void);
 
   public:
@@ -131,11 +136,13 @@ class Generator {
     int                 register_number;
     map<string, IR>     ir;
     map<string, string> ir_to_name;
+    map<string, string> type_to_i_type;
     Register            env_register;
     vector<string>      op_codes;
     void                IR_mov(const Node *node, vector<string> &op_codes);
     string              IR_load(string load_register, string loaded_register, string type_1, string type_2, string size);
     void                IR_calculation(const Node *node, vector<string> &op_codes, const char calc_op, string &result_register);
+    string              now_function_type;
 
   public:
     string         gen(const Node *node);

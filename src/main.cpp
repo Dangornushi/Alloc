@@ -99,18 +99,23 @@ int main(int argc, char **argv) {
         fclose(program_f); // ファイルを閉じる
     }
 
+    // file open
     discharge_f.open(pick_out_extension(fname) + ".ll", std::ios::out);
 
+    // file write
     vector<string> op_codes = start(data);
 
     for (auto item : op_codes) {
         discharge_f << item << std::flush;
     }
 
+    // file close
     discharge_f.close();
 
+    // Null clear
     data = (char *)realloc(NULL, 1);
 
+    /*===--- Mode ---===*/
     if (mode == INTERP || mode == COMMAND) {
         // run
         int lli_run_return_code = system("lli runtime-file");
@@ -123,6 +128,7 @@ int main(int argc, char **argv) {
     }
     if (mode == INTERP) {
         // go to interprit compile func
+        // line: 34
         goto loop;
     }
 

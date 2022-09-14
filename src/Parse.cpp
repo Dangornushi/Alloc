@@ -28,11 +28,17 @@ bool Parser::expect(const char *str) {
 }
 
 Node *Parser::let_exper(void) {
-    Node *node;
+    Node  *node;
 
-    node = num();
+    string variable_name = token->str;
+    string variable_type;
+    token++;
+    if (consume(":")) {
+        variable_type = token->str;
+        token++;
+    }
     expect("<-");
-    node = new Node{ND_LET, node, add_sub()};
+    node = new Node{ND_LET, node, add_sub(), variable_name, variable_type};
     expect(";");
     return node;
 }
@@ -61,7 +67,8 @@ Node *Parser::func(void) {
     Node *node;
     if (consume("fn")) {
         string function_type = "void";
-        node                 = num();
+        string function_name = token->str;
+        token++;
 
         if (consume("(")) {
             // argments
@@ -74,7 +81,7 @@ Node *Parser::func(void) {
             token++;
         }
 
-        node = new Node{ND_FN, node, block()};
+        node = new Node{ND_FN, node, block(), function_name, function_type};
     }
     return node;
 }
@@ -137,8 +144,20 @@ Node *Parser::expr_in_brackets(void) {
         Node *node = add_sub();
         expect(")");
         return node;
+    } else if (TK_VARIABLE == token->kind && (token + 1)->str == "(") {
+        return call_function();
     }
     return num();
+}
+
+Node *Parser::call_function(void) {
+    Node *node = new Node();
+    node->kind = ND_CALL_FUNCTION;
+    node->val  = token->str;
+    token++;
+    expect("(");
+    expect(")");
+    return node;
 }
 
 Node *Parser::num(void) {
