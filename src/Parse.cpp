@@ -43,6 +43,18 @@ Node *Parser::let_exper(void) {
     return node;
 }
 
+Node *Parser::mov_exper(void) {
+    Node  *node;
+
+    string variable_name = token->str;
+    string variable_type;
+    token++;
+    expect("<-");
+    node = new Node{ND_MOV, node, add_sub(), variable_name};
+    expect(";");
+    return node;
+}
+
 Node *Parser::return_exper(void) {
     Node *node = new Node{ND_RETURN, node, add_sub()};
     expect(";");
@@ -73,12 +85,22 @@ vector<Register> Parser::arg(void) {
     }
 
     while (1) {
-        argments.push_back({(token + 2)->str, token->str});
-        if ((token + 3)->str == ",")
-            token += 4;
-        else if ((token + 3)->str == ")") {
-            token += 3;
-            break;
+        if ((token + 1)->str == ":") {
+            argments.push_back({(token + 2)->str, token->str});
+            if ((token + 3)->str == ",")
+                token += 4;
+            else if ((token + 3)->str == ")") {
+                token += 3;
+                break;
+            }
+        } else {
+            argments.push_back({token->str});
+            if ((token + 1)->str == ",")
+                token += 2;
+            else if ((token + 1)->str == ")") {
+                token += 1;
+                break;
+            }
         }
     }
 
@@ -88,14 +110,13 @@ vector<Register> Parser::arg(void) {
 Node *Parser::func(void) {
     Node *node;
     if (consume("fn")) {
-        string function_type = "void";
-        string function_name = token->str;
+        string           function_type = "void";
+        string           function_name = token->str;
+        vector<Register> argments;
         token++;
 
         if (consume("(")) {
-            for (auto tmp : arg()) {
-                cout << tmp.Name << ":" << tmp.Type << endl;
-            }
+            argments = arg();
             // argments
             expect(")");
         }
@@ -106,7 +127,7 @@ Node *Parser::func(void) {
             token++;
         }
 
-        node = new Node{ND_FN, node, block(), function_name, function_type};
+        node = new Node{ND_FN, node, block(), function_name, function_type, argments};
     }
     return node;
 }
@@ -134,6 +155,8 @@ Node *Parser::expr(void) {
         return let_exper();
     } else if (consume("return")) {
         return return_exper();
+    } else if ((token + 1)->str == "<-") {
+        return mov_exper();
     }
     return add_sub();
 }
@@ -174,6 +197,16 @@ Node *Parser::expr_in_brackets(void) {
     }
     return num();
 }
+Node *Parser::call_arg(void) {
+    if (token->str == ")")
+        return new Node{};
+
+    Node *node = new Node {ND_CALL_ARG, add_sub()};
+
+    if (consume(","))
+        node->right = call_arg();
+    return node;
+}
 
 Node *Parser::call_function(void) {
     Node *node = new Node();
@@ -181,6 +214,7 @@ Node *Parser::call_function(void) {
     node->val  = token->str;
     token++;
     expect("(");
+    node->right = call_arg();
     expect(")");
     return node;
 }

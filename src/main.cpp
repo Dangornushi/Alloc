@@ -14,9 +14,7 @@ vector<string> start(char *data) {
     Generator      generator;
 
     vector<Token>  token    = toknizer.tokenize(data);
-
     vector<Node *> nodes    = parser.parse(token);
-
     vector<string> op_codes = generator.codegen(nodes);
 
     return op_codes;
@@ -31,6 +29,7 @@ int main(int argc, char **argv) {
     Mode     mode;
 
     if (argc == 1) {
+        cout << "Alloc interpreter mode." << endl;
     loop:
         string input_data;
 

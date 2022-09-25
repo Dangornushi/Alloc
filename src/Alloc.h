@@ -70,9 +70,11 @@ typedef enum {
     ND_MUL,
     ND_DIV,
     ND_LET,
+    ND_MOV,
     ND_FN,
     ND_RETURN,
     ND_BLOCK,
+    ND_CALL_ARG,
     ND_CALL_FUNCTION,
     ND_VARIABLE,
     ND_EXPR,
@@ -81,11 +83,12 @@ typedef enum {
 typedef struct Node Node;
 
 struct Node {
-    NodeKind kind;
-    Node    *left;
-    Node    *right;
-    string   val;
-    string   type;
+    NodeKind         kind;
+    Node            *left;
+    Node            *right;
+    string           val;
+    string           type;
+    vector<Register> argments;
 };
 
 class Tokenizer {
@@ -104,6 +107,7 @@ class Parser {
     vector<Node *>          program(vector<Node *> nodes);
     bool                    consume(const char *str);
     Node                   *let_exper(void);
+    Node                   *mov_exper(void);
     Node                   *return_exper(void);
     vector<Register>        arg(void);
     Node                   *func(void);
@@ -112,6 +116,7 @@ class Parser {
     Node                   *expr_in_brackets(void);
     Node                   *add_sub(void);
     Node                   *mul_div(void);
+    Node                   *call_arg(void);
     Node                   *call_function(void);
     Node                   *num(void);
 
@@ -140,9 +145,11 @@ class Generator {
     map<string, string> type_to_i_type;
     Register            env_register;
     vector<string>      op_codes;
+    vector<string>      call_function_argments;
     void                IR_mov(const Node *node, vector<string> &op_codes);
     string              IR_load(string load_register, string loaded_register, string type_1, string type_2, string size);
     void                IR_calculation(const Node *node, vector<string> &op_codes, const char calc_op, string &result_register);
+    void                IR_mov_reDefine(const Node *node);
     string              now_function_type;
 
   public:
