@@ -15,7 +15,7 @@ bool Parser::consume(const char *str) {
     }
 
     return false;
-};
+}
 
 bool Parser::expect(const char *str) {
 
@@ -32,13 +32,18 @@ Node *Parser::let_exper(void) {
 
     string variable_name = token->str;
     string variable_type;
+
     token++;
+
     if (consume(":")) {
         variable_type = token->str;
         token++;
     }
+
     expect("<-");
+
     node = new Node{ND_LET, node, add_sub(), variable_name, variable_type};
+
     expect(";");
     return node;
 }
@@ -58,6 +63,12 @@ Node *Parser::mov_exper(void) {
 Node *Parser::return_exper(void) {
     Node *node = new Node{ND_RETURN, node, add_sub()};
     expect(";");
+    return node;
+}
+
+Node *Parser::if_exper(void) {
+    /* TODO bool -> add_sub 入れ替え */
+    Node *node = new Node{ND_RETURN, node, add_sub()};
     return node;
 }
 
@@ -155,6 +166,8 @@ Node *Parser::expr(void) {
         return let_exper();
     } else if (consume("return")) {
         return return_exper();
+    } else if (consume("if")) {
+        return if_exper();
     } else if ((token + 1)->str == "<-") {
         return mov_exper();
     }
@@ -197,6 +210,7 @@ Node *Parser::expr_in_brackets(void) {
     }
     return num();
 }
+
 Node *Parser::call_arg(void) {
     if (token->str == ")")
         return new Node{};
@@ -217,6 +231,16 @@ Node *Parser::call_function(void) {
     node->right = call_arg();
     expect(")");
     return node;
+}
+
+Node *Parser::borrow(void) {
+    if (consume("&")) {
+        Node *node = new Node{ND_BORROW_VAR};
+        node->val  = token->str;
+        token++;
+        return node;
+    }
+    return num();
 }
 
 Node *Parser::num(void) {

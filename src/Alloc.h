@@ -13,6 +13,9 @@
 #include <cctype>
 
 #define MAX_READ_SIZE 1024
+#define POINTER 0
+#define NOTPOINTER 1
+#define REALNUMBER 2
 
 using std::cerr;
 using std::cin;
@@ -49,6 +52,7 @@ typedef enum {
     TK_EQ,
     TK_VARIABLE,
     TK_EOF,
+    TK_RESERV,
 } TokenKind;
 
 typedef struct {
@@ -64,20 +68,26 @@ typedef struct {
 } Register;
 
 typedef enum {
-    ND_NUM,
-    ND_ADD,
-    ND_SUB,
-    ND_MUL,
-    ND_DIV,
-    ND_LET,
-    ND_MOV,
-    ND_FN,
-    ND_RETURN,
-    ND_BLOCK,
-    ND_CALL_ARG,
-    ND_CALL_FUNCTION,
-    ND_VARIABLE,
-    ND_EXPR,
+    ND_NUM,                 // 0
+    ND_ADD,                 // 1
+    ND_SUB,                 // 2
+    ND_MUL,                 // 3
+    ND_DIV,                 // 4
+    ND_LET,                 // 5
+    ND_MOV,                 // 6
+    ND_FN,                  // 7
+    ND_RETURN,              // 8
+    ND_BLOCK,               // 9
+    ND_CALL_ARG,            // 10
+    ND_CALL_FUNCTION,       // 11
+    ND_VARIABLE,            // 12
+    ND_ARG_VARIABLE,        // 13
+    ND_BORROW_VAR,          // 14
+    ND_EXPR,                // 15
+    ND_IF,
+    ND_ELSE,
+    ND_WHILE,
+    ND_LOOP,
 } NodeKind;
 
 typedef struct Node Node;
@@ -109,6 +119,7 @@ class Parser {
     Node                   *let_exper(void);
     Node                   *mov_exper(void);
     Node                   *return_exper(void);
+    Node                   *if_exper(void);
     vector<Register>        arg(void);
     Node                   *func(void);
     Node                   *block(void);
@@ -118,6 +129,7 @@ class Parser {
     Node                   *mul_div(void);
     Node                   *call_arg(void);
     Node                   *call_function(void);
+    Node                   *borrow(void);
     Node                   *num(void);
 
   public:
@@ -135,7 +147,7 @@ typedef struct {
     Register register_pointer;
     Register register_nonpointer_name;
     string   register_string_name;
-    int      type;
+    int   Type;
 } IR;
 
 class Generator {

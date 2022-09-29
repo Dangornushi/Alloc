@@ -37,6 +37,7 @@ vector<Token> Tokenizer::tokenize(string sent) {
             case ',':
             case ';':
             case ':':
+            case '&':
             case '[':
             case ']':
             case '(':
@@ -74,6 +75,12 @@ vector<Token> Tokenizer::tokenize(string sent) {
 
                 if (split_token(input, "fn", 2)) {
                     tokens.push_back(Token{TK_FN, "fn", 2});
+                    input += 2;
+                    continue;
+                }
+
+                if (split_token(input, "if", 2)) {
+                    tokens.push_back(Token{TK_RESERV, "if", 2});
                     input += 2;
                     continue;
                 }
