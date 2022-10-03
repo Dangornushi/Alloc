@@ -42,7 +42,7 @@ Node *Parser::let_exper(void) {
 
     expect("<-");
 
-    node = new Node{ND_LET, node, add_sub(), variable_name, variable_type};
+    node = new Node{ND_LET, node, boolen(), variable_name, variable_type};
 
     expect(";");
     return node;
@@ -68,7 +68,8 @@ Node *Parser::return_exper(void) {
 
 Node *Parser::if_exper(void) {
     /* TODO bool -> add_sub 入れ替え */
-    Node *node = new Node{ND_RETURN, node, add_sub()};
+    /* そのほか　変数定義するとことかも変える*/
+    Node *node = new Node{ND_IF, boolen(),  block()};
     return node;
 }
 
@@ -97,7 +98,7 @@ vector<Register> Parser::arg(void) {
 
     while (1) {
         if ((token + 1)->str == ":") {
-            argments.push_back({(token + 2)->str, token->str});
+            argments.push_back({token->str, (token + 2)->str});
             if ((token + 3)->str == ",")
                 token += 4;
             else if ((token + 3)->str == ")") {
@@ -138,13 +139,16 @@ Node *Parser::func(void) {
             token++;
         }
 
-        node = new Node{ND_FN, node, block(), function_name, function_type, argments};
+        return new Node{ND_FN, node, block(), function_name, function_type, argments};        
     }
     return node;
 }
 
 Node *Parser::block(void) {
     Node *node;
+
+    if (token->str != "{")
+        return new Node{ND_BLOCK, node, expr()};
 
     expect("{");
 
@@ -174,14 +178,25 @@ Node *Parser::expr(void) {
     return add_sub();
 }
 
+Node *Parser::boolen(void) {
+    Node *node = add_sub();
+
+    if (consume(">"))
+        return new Node {ND_GREATER_THAN, node, add_sub()};
+    if (consume("<"))
+        return new Node {ND_LESS_THAN, node, add_sub()};
+    return node;
+}
+
 Node *Parser::add_sub(void) {
     Node *node = mul_div();
 
     while (1) {
         if (consume("+")) {
             node = new Node{ND_ADD, node, add_sub()};
-        } else if (consume("-"))
+        } else if (consume("-")) {
             node = new Node{ND_SUB, node, add_sub()};
+        }
         else
             return node;
     }
@@ -246,6 +261,7 @@ Node *Parser::borrow(void) {
 Node *Parser::num(void) {
     Node *node = new Node();
     node->val  = token->str;
+
     if (isNumber(node->val))
         node->kind = ND_NUM;
     else
@@ -254,3 +270,4 @@ Node *Parser::num(void) {
     token++;
     return node;
 }
+

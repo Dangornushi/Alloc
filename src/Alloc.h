@@ -85,6 +85,8 @@ typedef enum {
     ND_BORROW_VAR,          // 14
     ND_EXPR,                // 15
     ND_IF,
+    ND_LESS_THAN,
+    ND_GREATER_THAN,
     ND_ELSE,
     ND_WHILE,
     ND_LOOP,
@@ -125,6 +127,7 @@ class Parser {
     Node                   *block(void);
     Node                   *expr(void);
     Node                   *expr_in_brackets(void);
+    Node                   *boolen(void);
     Node                   *add_sub(void);
     Node                   *mul_div(void);
     Node                   *call_arg(void);
@@ -159,7 +162,9 @@ class Generator {
     vector<string>      op_codes;
     vector<string>      call_function_argments;
     void                IR_mov(const Node *node, vector<string> &op_codes);
+    void                IR_if(const Node *node, vector<string> &op_codes);
     string              IR_load(string load_register, string loaded_register, string type_1, string type_2, string size);
+    void                IR_boolen(const Node *node, vector<string> &op_codes, const char calc_op, string &result_register);
     void                IR_calculation(const Node *node, vector<string> &op_codes, const char calc_op, string &result_register);
     void                IR_mov_reDefine(const Node *node);
     string              now_function_type;

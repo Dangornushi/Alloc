@@ -23,11 +23,56 @@ string Generator::trance_type(string reg) {
 string Generator::IR_load(string load_register, string loaded_register, string type_1, string type_2, string size) {
     return "\t" + load_register + " = load " + type_1 + ", " + type_2 + " " + loaded_register + ", align " + size + "\n";
 }
+void Generator::IR_boolen(const Node *node, vector<string> &op_codes, const char calc_op, string &result_register) {
+    string op_code;
+
+    string left_register = gen(node->left);
+    string right_register = gen(node->right);
+
+    if (ir[ir_to_name[left_register]].Type != REALNUMBER && ir[ir_to_name[right_register]].Type != REALNUMBER) {
+        cout << ir[ir_to_name[right_register]].register_nonpointer_name.Type << endl;
+    }
+    else {
+        string load_register;
+        string icmp_register;
+
+        /*===--- left ---===*/
+        string left_nonpointer_type = ir[ir_to_name[left_register]].register_nonpointer_name.Type;
+        string left_pointer_type = ir[ir_to_name[left_register]].register_pointer.Type;
+
+        if (ir[ir_to_name[left_register]].Type == NOTPOINTER) {
+            left_register = ir[ir_to_name[left_register]].register_nonpointer_name.Name;
+            load_register = generate_regisuter_name();
+            op_codes.push_back(IR_load(load_register, left_register, left_nonpointer_type, left_pointer_type, "8"));
+            left_register = load_register;
+        }
+        /*===--- end ---===*/
+
+        /*===--- right ---===*/
+        string right_nonpointer_type = ir[ir_to_name[right_register]].register_nonpointer_name.Type;
+        string right_pointer_type = ir[ir_to_name[right_register]].register_pointer.Type;
+
+        if (ir[ir_to_name[right_register]].Type == NOTPOINTER) {
+            right_register = ir[ir_to_name[right_register]].register_nonpointer_name.Name;
+            load_register = generate_regisuter_name();
+            op_codes.push_back(IR_load(load_register, right_register, right_nonpointer_type, right_pointer_type, "8"));
+            right_register = load_register;
+        }
+        /*===--- end ---===*/
+
+        icmp_register = generate_regisuter_name();
+        op_codes.push_back("\t" + icmp_register + " = icmp sgt " + left_nonpointer_type + " " + left_register + ", " + right_register + "\n");
+
+        result_register = icmp_register;
+    }
+}
 
 void Generator::IR_calculation(const Node *node, vector<string> &op_codes, const char calc_op, string &result_register) {
+
     // ===--- common ---===
     string l_register = gen(node->left);
     string l_type     = node->left->type;
+
     string r_register = gen(node->right);
     string r_type     = node->right->type;
 
@@ -128,8 +173,7 @@ void Generator::IR_calculation(const Node *node, vector<string> &op_codes, const
     ir["calculation_tmp_register"].register_nonpointer_name.Type = "i32";
     ir["calculation_tmp_register"].register_pointer.Name = result_register;
     ir["calculation_tmp_register"].register_nonpointer_name.Name = result_register;
-    ir["calculation_tmp_register"].Type = NOTPOINTER;
-
+    ir["calculation_tmp_register"].Type = REALNUMBER;
 }
 
 void Generator::IR_mov(const Node *node, vector<string> &op_codes) {
@@ -183,6 +227,30 @@ void Generator::IR_mov_reDefine(const Node *node) {
     return;
 }
 
+void Generator::IR_if(const Node *node, vector<string> &op_codes) {
+    string icmp_register = gen(node->left);
+    string if_reg, if_end_reg;
+
+    vector<string> op_codes_tmp = op_codes;
+    op_codes = {};
+
+    if_reg = generate_regisuter_name();
+    if_reg.erase(0, 1);
+    op_codes.push_back(if_reg + ":\n"); 
+
+    gen(node->right);
+    op_codes.push_back("\n"); 
+
+    if_end_reg = generate_regisuter_name();
+    if_end_reg.erase(0, 1);
+
+    op_codes.push_back(if_end_reg + ":\n"); 
+
+    op_codes_tmp.push_back("\tbr i1 " + icmp_register +  ", label %" + if_reg + ", label %" + if_end_reg + "\n\n");
+
+    op_codes.insert(op_codes.begin(), op_codes_tmp.begin(), op_codes_tmp.end());
+}
+
 string Generator::gen(const Node *node) {
     string result_register = "";
 
@@ -206,13 +274,18 @@ string Generator::gen(const Node *node) {
             break;
         }
 
+        case ND_LESS_THAN:
+            IR_boolen(node, op_codes, '<', result_register);
+            break;
+        case ND_GREATER_THAN:
+            IR_boolen(node, op_codes, '>', result_register);
+            break;
         case ND_ADD:
             IR_calculation(node, op_codes, '+', result_register);
             break;
-        case ND_SUB: {
+        case ND_SUB:
             IR_calculation(node, op_codes, '-', result_register);
             break;
-                     }
         case ND_MUL:
             IR_calculation(node, op_codes, '*', result_register);
             break;
@@ -221,6 +294,9 @@ string Generator::gen(const Node *node) {
             break;
         case ND_LET:
             IR_mov(node, op_codes);
+            break;
+        case ND_IF:
+            IR_if(node, op_codes);
             break;
         case ND_MOV:
             IR_mov_reDefine(node);
@@ -309,6 +385,8 @@ string Generator::gen(const Node *node) {
                                    load_register_non_pointer + "\n");
                 break;
             }
+            else
+                register_number--;
             op_codes.push_back("\tret " + now_function_type + " " + return_value + "\n");
             break;
         }
