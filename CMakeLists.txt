@@ -12,5 +12,5 @@ add_executable(
 	src/gen.cpp
 )
 include_directories(${INCLUDE_DIRS})
-
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -gO")
 set_property(TARGET alloc PROPERTY CXX_STANDARD 20)                       

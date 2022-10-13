@@ -22,12 +22,8 @@ bool Tokenizer::isKeyword(char *input) {
 vector<Token> Tokenizer::tokenize(string sent) {
     auto input = sent.begin();
 
-    while (1) {
-
+    for (int _size = 0; _size < sent.length(); _size++ ) {
         switch (*input) {
-            case 0:
-                tokens.push_back(Token{TK_EOF, "", 0});
-                return tokens;
             case '\n':
             case '\t':
             case ' ':
@@ -45,7 +41,6 @@ vector<Token> Tokenizer::tokenize(string sent) {
             case ')':
             case '{':
             case '}':
-            case '/':
             case '*':
             case '+':
             case '-': {
@@ -68,6 +63,33 @@ vector<Token> Tokenizer::tokenize(string sent) {
                     continue;
                 }
 
+                if  (split_token(input, "//", 2)) {
+                    while (*input != '\n') {
+                        input++;
+                    }
+                    continue;
+                }
+
+                if  (split_token(input, "/*", 2)) {
+                    input+=2;
+                    while (1) {
+                        if (*input == '*' && *(input+ 1) == '/')
+                            break;
+                        input++;
+                    }
+                    input+=2;
+                    continue;
+                }
+
+
+                if (input[0] == '/') {
+                    string input_string = input.base();
+                    Token  token        = {TK_OP, input_string.substr(0, 1), 1};
+                    tokens.push_back(token);
+                    input++;
+                    continue;
+                }
+
                 if (split_token(input, "<-", 2)) {
                     tokens.push_back(Token{TK_LET, "<-", 2});
                     input += 2;
@@ -83,9 +105,27 @@ vector<Token> Tokenizer::tokenize(string sent) {
                     continue;
                 }
 
+                if (split_token(input, "while", 5)) {
+                    tokens.push_back(Token{TK_RESERV, "while", 5});
+                    input += 5;
+                    continue;
+                }
+
+                if (split_token(input, "break", 5)) {
+                    tokens.push_back(Token{TK_RESERV, "break", 5});
+                    input += 5;
+                    continue;
+                }
+
                 if (split_token(input, "return", 6)) {
                     tokens.push_back(Token{TK_RETURN, "return", 6});
                     input += 6;
+                    continue;
+                }
+
+                if (split_token(input, "__put__", 7)) {
+                    tokens.push_back(Token{TK_RESERV, "__put__", 7});
+                    input += 7;
                     continue;
                 }
 
@@ -113,11 +153,10 @@ vector<Token> Tokenizer::tokenize(string sent) {
                     tokens.push_back(Token{TK_NUM, input_string, 0});
                     continue;
                 }
-                cerr << "Invalid character : " << *input << endl;
-                exit(1);
                 break;
             }
         }
     }
+    tokens.push_back(Token{TK_EOF, "", 0});
     return tokens;
 }

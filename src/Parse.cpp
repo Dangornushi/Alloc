@@ -69,7 +69,18 @@ Node *Parser::return_exper(void) {
 Node *Parser::if_exper(void) {
     /* TODO bool -> add_sub 入れ替え */
     /* そのほか　変数定義するとことかも変える*/
-    Node *node = new Node{ND_IF, boolen(),  block()};
+    Node *node = new Node{ND_IF, boolen(), block()};
+    return node;
+}
+
+Node *Parser::while_exper(void) {
+    Node *node = new Node{ND_WHILE, boolen(), block()};
+    return node;
+}
+
+Node *Parser::__put_exper(void) {
+    Node *node = new Node{ND___PUT__, node,  add_sub()};
+    consume(";");
     return node;
 }
 
@@ -82,8 +93,9 @@ vector<Node *> Parser::parse(vector<Token> tokens) {
 
 vector<Node *> Parser::program(vector<Node *> nodes) {
 
-    while (TK_EOF != token->kind)
+    while (TK_EOF != token->kind) {
         nodes.push_back(func());
+    }
     return nodes;
 }
 
@@ -155,8 +167,9 @@ Node *Parser::block(void) {
     node = expr();
 
     while (1) {
-        if (consume("}"))
+        if (consume("}") || token->kind == TK_EOF ) {
             return node;
+        }
         node = new Node{ND_BLOCK, node, expr()};
     }
 
@@ -165,16 +178,23 @@ Node *Parser::block(void) {
 }
 
 Node *Parser::expr(void) {
-
-    if (consume("let")) {
+    if (consume("let"))
         return let_exper();
-    } else if (consume("return")) {
+    else if (consume("return"))
         return return_exper();
-    } else if (consume("if")) {
+    else if (consume("if")) 
         return if_exper();
-    } else if ((token + 1)->str == "<-") {
-        return mov_exper();
+    else if (consume("while"))
+        return while_exper();
+    else if (consume("__put__"))
+        return __put_exper();
+    else if (consume("break")) {
+        Node *node = new Node{ND_BREAK, node, expr()};
+        return node;
     }
+    else if ((token + 1)->str == "<-")
+        return mov_exper();
+    
     return add_sub();
 }
 
@@ -223,7 +243,7 @@ Node *Parser::expr_in_brackets(void) {
     } else if (TK_VARIABLE == token->kind && (token + 1)->str == "(") {
         return call_function();
     }
-    return num();
+    return borrow();
 }
 
 Node *Parser::call_arg(void) {
@@ -254,6 +274,26 @@ Node *Parser::borrow(void) {
         node->val  = token->str;
         token++;
         return node;
+    }
+    return increment();
+}
+
+Node *Parser::increment(void) {
+    if ((token+1)->str == "+" && (token+2)->str == "+") {
+        string var_name = token->str;
+        Node *var = num();
+        token += 2;
+        Node *one = new Node {ND_NUM};
+        one->val = "1";
+        return new Node{ND_MOV, var, new Node{ND_ADD, var, one}, var_name};
+    }
+    if ((token+1)->str == "-" && (token+2)->str == "-") {
+        string var_name = token->str;
+        Node *var = num();
+        token += 2;
+        Node *one = new Node {ND_NUM};
+        one->val = "1";
+        return new Node{ND_MOV, var, new Node{ND_SUB, var, one}, var_name};
     }
     return num();
 }

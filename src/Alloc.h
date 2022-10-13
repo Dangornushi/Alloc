@@ -84,11 +84,13 @@ typedef enum {
     ND_ARG_VARIABLE,        // 13
     ND_BORROW_VAR,          // 14
     ND_EXPR,                // 15
+    ND_BREAK,
     ND_IF,
+    ND_WHILE,
+    ND___PUT__,
     ND_LESS_THAN,
     ND_GREATER_THAN,
     ND_ELSE,
-    ND_WHILE,
     ND_LOOP,
 } NodeKind;
 
@@ -122,6 +124,8 @@ class Parser {
     Node                   *mov_exper(void);
     Node                   *return_exper(void);
     Node                   *if_exper(void);
+    Node                   *while_exper(void);
+    Node                   *__put_exper(void);
     vector<Register>        arg(void);
     Node                   *func(void);
     Node                   *block(void);
@@ -133,6 +137,7 @@ class Parser {
     Node                   *call_arg(void);
     Node                   *call_function(void);
     Node                   *borrow(void);
+    Node                   *increment(void);
     Node                   *num(void);
 
   public:
@@ -155,19 +160,29 @@ typedef struct {
 
 class Generator {
     int                 register_number;
+    int                 string_declaration_number;
+    int                 if_frequency;
+    int                 while_frequency;
+    bool                returned;
+    map<string, bool>   defined_function;
     map<string, IR>     ir;
     map<string, string> ir_to_name;
     map<string, string> type_to_i_type;
     Register            env_register;
     vector<string>      op_codes;
+    vector<string>      str_defines;
+    vector<string>      function_declaration;
     vector<string>      call_function_argments;
     void                IR_mov(const Node *node, vector<string> &op_codes);
     void                IR_if(const Node *node, vector<string> &op_codes);
+    void                IR_while(const Node *node, vector<string> &op_codes);
+    void                IR___put__(const Node *node);
     string              IR_load(string load_register, string loaded_register, string type_1, string type_2, string size);
     void                IR_boolen(const Node *node, vector<string> &op_codes, const char calc_op, string &result_register);
     void                IR_calculation(const Node *node, vector<string> &op_codes, const char calc_op, string &result_register);
     void                IR_mov_reDefine(const Node *node);
     string              now_function_type;
+    string              while_end_register;
 
   public:
     string         gen(const Node *node);
