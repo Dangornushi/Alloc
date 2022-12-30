@@ -84,6 +84,18 @@ Node *Parser::__put_exper(void) {
     return node;
 }
 
+Node *Parser::__out_exper(void) {
+    Node *node = new Node{ND___OUT__, node,  add_sub()};
+    consume(";");
+    return node;
+}
+
+Node *Parser::__in_exper(void) {
+    Node *node = new Node{ND___IN__, node,  add_sub()};
+    consume(";");
+    return node;
+}
+
 vector<Node *> Parser::parse(vector<Token> tokens) {
     token = tokens.begin();
     vector<Node *> nodes;
@@ -186,8 +198,10 @@ Node *Parser::expr(void) {
         return if_exper();
     else if (consume("while"))
         return while_exper();
-    else if (consume("__put__"))
-        return __put_exper();
+    else if (consume("__out__"))
+        return __out_exper();
+    else if (consume("__in__"))
+        return __in_exper();
     else if (consume("break")) {
         Node *node = new Node{ND_BREAK, node, expr()};
         return node;
@@ -304,6 +318,8 @@ Node *Parser::num(void) {
 
     if (isNumber(node->val))
         node->kind = ND_NUM;
+    else if (token->kind == TK_STR)
+        node->kind = ND_STR;
     else
         node->kind = ND_VARIABLE;
 

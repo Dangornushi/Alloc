@@ -14,9 +14,10 @@ string Generator::generate_regisuter_name(void) {
 string Generator::trance_type(string reg) {
     string ret;
 
-    (reg.at(0) == '%') ? ret = ir[ir_to_name[reg]].register_pointer.Type
-                       : ret = "i32";
+    if (reg.at(0) == '%')
+        return typenumToType[ir[ir_to_name[reg]].Type];
 
+    ret = typenumToType[ir[ir_to_name[reg]].Type];//"i32";
     return ret;
 }
 
@@ -37,7 +38,8 @@ void Generator::IR_boolen(const Node *node, vector<string> &op_codes, const char
         string load_register;
         string icmp_register;
 
-        /*===--- left ---===*/
+        // /* ===--- left ---=== */
+		
         string left_nonpointer_type = ir[ir_to_name[left_register]].register_nonpointer_name.Type;
         string left_pointer_type = ir[ir_to_name[left_register]].register_pointer.Type;
 
@@ -47,9 +49,8 @@ void Generator::IR_boolen(const Node *node, vector<string> &op_codes, const char
             op_codes.push_back(IR_load(load_register, left_register, left_nonpointer_type, left_pointer_type, "8"));
             left_register = load_register;
         }
-        /*===--- end ---===*/
 
-        /*===--- right ---===*/
+        // /*===--- right ---===*/
         string right_nonpointer_type = ir[ir_to_name[right_register]].register_nonpointer_name.Type;
         string right_pointer_type = ir[ir_to_name[right_register]].register_pointer.Type;
 
@@ -62,7 +63,6 @@ void Generator::IR_boolen(const Node *node, vector<string> &op_codes, const char
             op_codes.push_back(IR_load(load_register, right_register, right_nonpointer_type, right_pointer_type, "8"));
             right_register = load_register;
         }
-        /*===--- end ---===*/
 
         map<const char, string> if_op = {{'<', "sgt"}, {'>', "slt"}};
 
@@ -75,14 +75,11 @@ void Generator::IR_boolen(const Node *node, vector<string> &op_codes, const char
 
 void Generator::IR_calculation(const Node *node, vector<string> &op_codes, const char calc_op, string &result_register) {
 
-    // ===--- common ---===
-    string l_register = gen(node->left);
+	string l_register = gen(node->left);
     string l_type     = node->left->type;
-
     string r_register = gen(node->right);
     string r_type     = node->right->type;
 
-    // ===--- uncommon ---===
     string calc_register;
     string calc;
 
@@ -183,22 +180,30 @@ void Generator::IR_calculation(const Node *node, vector<string> &op_codes, const
 }
 
 void Generator::IR_mov(const Node *node, vector<string> &op_codes) {
+    // ===--- mov ---===
+    string variable_name       = node->val;
+    string store_register_name = gen(node->right);
+
     string alloca_p = generate_regisuter_name();
     string alloca_i = generate_regisuter_name();
+    string typeInStr = trance_type(store_register_name);
 
     op_codes.push_back("\t; mov\n");
 
     // ===--- define ---===
     op_codes.push_back(
-            "\t" + alloca_p + " = alloca i32*, align 8\n" + 
-            "\t" + alloca_i + " = alloca i32, align 4\n" + 
-            "\tstore i32* " + alloca_i + ", i32** " + alloca_p + ", align 8\n");
+            "\t" + alloca_p + " = alloca " + typeInStr + "*, align 8\n" + 
+            "\t" + alloca_i + " = alloca " + typeInStr + ", align 4\n" + 
+            "\tstore " + typeInStr + "* " + alloca_i + ", " + typeInStr + "** " + alloca_p + ", align 8\n");
 
-    // ===--- mov ---===
-    string variable_name       = node->val;
-    string store_register_name = gen(node->right);
 
-    if ("i32" == trance_type(store_register_name))
+    if ("i8*" == typeInStr) {
+        string string_declaration = "@.str." + to_string(string_declaration_number++);
+        string store_register_name_length = "[" + to_string(store_register_name.length()+1) + " x i8]";
+        str_defines.push_back(string_declaration +  " = private unnamed_addr constant " + store_register_name_length + " c\"" + store_register_name +"\\00\", align 1\n");
+        op_codes.push_back("\tstore i8* getelementptr inbounds (" + store_register_name_length + ", " + store_register_name_length + "* " + string_declaration + ", i64 0, i64 0), i8** " + alloca_i + ", align 8\n"); 
+    }    
+    else if ("i32" == typeInStr)
         op_codes.push_back("\tstore i32 " + store_register_name + ", i32* " + alloca_i + ", align 4\n");
 
     else if (store_register_name[0] == '%') {
@@ -211,8 +216,8 @@ void Generator::IR_mov(const Node *node, vector<string> &op_codes) {
     op_codes.push_back("\n");
 
     // map ir -> ir_to_name
-    ir[variable_name] = IR{Register{alloca_p, "i32*", "8"},
-                           Register{alloca_i, "i32", "4"}, variable_name};
+    ir[variable_name] = IR{Register{alloca_p, typeInStr + "*", "8"},
+                           Register{alloca_i, typeInStr, "4"}, variable_name};
 
     ir_to_name.emplace(alloca_p, variable_name);
     ir_to_name.emplace(alloca_i, variable_name);
@@ -303,8 +308,7 @@ void Generator::IR_while(const Node *node, vector<string> &op_codes) {
     op_codes.push_back(while_register + "_end:\n"); 
 
 }
-
-void Generator::IR___put__(const Node *node) {
+void Generator::IR___out__(const Node *node) {
     string put_register = gen(node->right);
     string load_register = generate_regisuter_name();
     string type = ir[ir_to_name[put_register]].register_nonpointer_name.Type;
@@ -312,7 +316,12 @@ void Generator::IR___put__(const Node *node) {
 
     put_register = ir[ir_to_name[put_register]].register_nonpointer_name.Name;
 
-    string string_declaration_sent = string_declaration +  " = private unnamed_addr constant [3 x i8] c\"%d\\00\", align 1\n";
+    string string_declaration_sent;
+
+    if (type == "i32")
+        string_declaration_sent = string_declaration +  " = private unnamed_addr constant [3 x i8] c\"%d\\00\", align 1\n";
+    else 
+        string_declaration_sent = string_declaration +  " = private unnamed_addr constant [3 x i8] c\"%s\\00\", align 1\n";
     str_defines.push_back(string_declaration_sent);
 
     if (!defined_function["printf"]) {
@@ -332,6 +341,32 @@ void Generator::IR___put__(const Node *node) {
     return;
 }
 
+void Generator::IR___in__(const Node *node) {
+    string in_register = gen(node->right);
+    string type = ir[ir_to_name[in_register]].register_nonpointer_name.Type;
+    string string_declaration = "@.str." + to_string(string_declaration_number++);
+
+    in_register = ir[ir_to_name[in_register]].register_nonpointer_name.Name;
+
+    string string_declaration_sent = string_declaration +  " = private unnamed_addr constant [3 x i8] c\"%c\\00\", align 1\n";
+    str_defines.push_back(string_declaration_sent);
+
+    if (!defined_function["scanf"]) {
+        function_declaration.push_back("declare i32 @scanf(i8* noundef, ...)\n");
+        defined_function["scanf"] = true;
+    }
+
+    string call_register = generate_regisuter_name();
+
+    op_codes.push_back(
+        "\t" + call_register + " = call i32 (i8*, ...) @scanf(" + 
+            "i8* noundef getelementptr inbounds ([3 x i8], [3 x i8]* " + string_declaration + ", i64 0, i64 0), " +
+            type +  "* noundef " + in_register + 
+        ")\n"
+    );
+    return;
+}
+
 string Generator::gen(const Node *node) {
     string result_register = "";
 
@@ -339,6 +374,12 @@ string Generator::gen(const Node *node) {
         return result_register;
 
     switch (node->kind) {
+        case ND_STR: {
+            ir_to_name[node->val]  = "$_REAL_STR";
+            ir[ir_to_name[node->val]].Type = REALSTR;
+            result_register = node->val;
+            break;
+        }
         case ND_NUM: {
             ir_to_name[node->val]  = "$_REAL_NUMBER";
             ir[ir_to_name[node->val]].Type = REALNUMBER;
@@ -383,7 +424,13 @@ string Generator::gen(const Node *node) {
             IR_while(node, op_codes);
             break;
         case ND___PUT__:
-            IR___put__(node);
+            IR___out__(node);
+            break;
+        case ND___OUT__:
+            IR___out__(node);
+            break;
+        case ND___IN__:
+            IR___in__(node);
             break;
         case ND_MOV:
             IR_mov_reDefine(node);
@@ -541,7 +588,7 @@ string Generator::gen(const Node *node) {
                 );
 
                 /* ===--- end ---=== */
-
+                //
             }
 
             argment_string.pop_back();
@@ -575,6 +622,12 @@ vector<string> Generator::codegen(vector<Node *> &nodes) {
          {"long", "i64"},
          {"void", "void"},
          {"str", "i8"},
+    };
+    typenumToType = {
+        {POINTER, "i32"},
+        {NOTPOINTER, "i32"},
+        {REALNUMBER, "i32"},
+        {REALSTR, "i8*"},
     };
 
     for (Node *node : nodes) {

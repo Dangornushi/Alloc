@@ -7,9 +7,9 @@ add_executable(
 	src/main.cpp 
 	src/Token.cpp 
 	src/Parse.cpp 
-
 	src/util.cpp
 	src/gen.cpp
+	src/binGen.cpp
 )
 include_directories(${INCLUDE_DIRS})
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -gO")

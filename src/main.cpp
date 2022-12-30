@@ -12,13 +12,19 @@ vector<string> start(char *data) {
     Tokenizer      toknizer;
     Parser         parser;
     Generator      generator;
+	BinaryGenerator BinGen;
 
     vector<Token>  token    = toknizer.tokenize(data);
     vector<Node *> nodes    = parser.parse(token);
+	//BinGen.binaryGenerator(nodes);
     vector<string> op_codes = generator.codegen(nodes);
+
+    //vector<string> op_codes = {};
 
     return op_codes;
 }
+
+// binary generator
 
 int main(int argc, char **argv) {
     string   prompt = ">> ";
@@ -99,9 +105,12 @@ int main(int argc, char **argv) {
     }
 
     // file open
-    discharge_f.open(pick_out_extension(fname) + ".ll", std::ios::out);
+
+    string filename = pick_out_extension(fname) + ".ll";
+    discharge_f.open(filename, std::ios::out);
 
     // file write
+
     vector<string> op_codes = start(data);
 
     for (auto item : op_codes) {
@@ -109,14 +118,18 @@ int main(int argc, char **argv) {
     }
 
     // file close
+
     discharge_f.close();
 
     // Null clear
+
     data = (char *)realloc(NULL, 1);
 
-    /*===--- Mode ---===*/
+    // /*===--- Mode ---===*/
+
     if (mode == INTERP || mode == COMMAND) {
         // run
+
         int lli_run_return_code = system("lli runtime-file");
         int state               = -1;
 
@@ -125,11 +138,10 @@ int main(int argc, char **argv) {
 
         cout << "Return code: " << state << endl;
     }
-    if (mode == INTERP) {
+    if (mode == INTERP)
         // go to interprit compile func
         // line: 34
         goto loop;
-    }
 
     free(data);
 

@@ -16,6 +16,7 @@
 #define POINTER 0
 #define NOTPOINTER 1
 #define REALNUMBER 2
+#define REALSTR 3
 
 using std::cerr;
 using std::cin;
@@ -53,6 +54,7 @@ typedef enum {
     TK_VARIABLE,
     TK_EOF,
     TK_RESERV,
+    TK_STR,
 } TokenKind;
 
 typedef struct {
@@ -88,10 +90,13 @@ typedef enum {
     ND_IF,
     ND_WHILE,
     ND___PUT__,
+    ND___OUT__,
+    ND___IN__,
     ND_LESS_THAN,
     ND_GREATER_THAN,
     ND_ELSE,
     ND_LOOP,
+    ND_STR,
 } NodeKind;
 
 typedef struct Node Node;
@@ -126,6 +131,8 @@ class Parser {
     Node                   *if_exper(void);
     Node                   *while_exper(void);
     Node                   *__put_exper(void);
+    Node                   *__out_exper(void);
+    Node                   *__in_exper(void);
     vector<Register>        arg(void);
     Node                   *func(void);
     Node                   *block(void);
@@ -164,10 +171,11 @@ class Generator {
     int                 if_frequency;
     int                 while_frequency;
     bool                returned;
+    map<int, string> typenumToType;
+    map<string, string> type_to_i_type;
     map<string, bool>   defined_function;
     map<string, IR>     ir;
     map<string, string> ir_to_name;
-    map<string, string> type_to_i_type;
     Register            env_register;
     vector<string>      op_codes;
     vector<string>      str_defines;
@@ -176,7 +184,8 @@ class Generator {
     void                IR_mov(const Node *node, vector<string> &op_codes);
     void                IR_if(const Node *node, vector<string> &op_codes);
     void                IR_while(const Node *node, vector<string> &op_codes);
-    void                IR___put__(const Node *node);
+    void                IR___out__(const Node *node);
+    void                IR___in__(const Node *node);
     string              IR_load(string load_register, string loaded_register, string type_1, string type_2, string size);
     void                IR_boolen(const Node *node, vector<string> &op_codes, const char calc_op, string &result_register);
     void                IR_calculation(const Node *node, vector<string> &op_codes, const char calc_op, string &result_register);
@@ -190,3 +199,15 @@ class Generator {
     string         generate_regisuter_name(void);
     string         trance_type(string reg);
 };
+
+class BinaryGenerator {
+    string nowValue;
+    int oprand;
+    Node* generator(Node* node);
+    vector<int> constNumbers;
+    map<string, int> nameToIndex;
+  public:
+    void binaryGenerator(vector<Node *> &nodes);
+    BinaryGenerator();
+};
+
